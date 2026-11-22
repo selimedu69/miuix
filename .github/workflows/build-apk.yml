@@ -1,4 +1,4 @@
-name: Build Miuix APK
+name: Build Miuix Release APK
 
 on:
   workflow_dispatch:
@@ -16,17 +16,25 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Sadece Android Demo APK Derle
+      - name: Release APK Derle
         run: |
           chmod +x gradlew
           if [ -d "example/android" ]; then
-            ./gradlew :example:android:assembleDebug
+            ./gradlew :example:android:assembleRelease
           else
-            ./gradlew :example:assembleDebug
+            ./gradlew :example:assembleRelease
           fi
 
-      - name: APK Dosyasini Yukle
+      - name: APK Imzala (Kurulabilmesi Icin)
+        run: |
+          APK_PATH=$(find example -name "*release*.apk" | head -n 1)
+          keytool -genkey -v -keystore test.keystore -alias test -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Test"
+          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | tail -n 1)
+          $BUILD_TOOLS/zipalign -v -p 4 "$APK_PATH" aligned.apk
+          $BUILD_TOOLS/apksigner sign --ks test.keystore --ks-pass pass:123456 --key-pass pass:123456 --out miuix-release-signed.apk aligned.apk
+
+      - name: Imzali Release APK Yukle
         uses: actions/upload-artifact@v4
         with:
-          name: miuix-demo-apk
-          path: "example/**/build/outputs/apk/debug/*.apk"
+          name: miuix-release-apk
+          path: "miuix-release-signed.apk"
