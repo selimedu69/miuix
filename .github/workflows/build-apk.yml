@@ -16,25 +16,21 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Release APK Derle
+      - name: Test Imzasi Olustur
+        run: |
+          keytool -genkey -v -keystore test.keystore -alias test -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Test"
+
+      - name: Imzali Release APK Derle
         run: |
           chmod +x gradlew
-          if [ -d "example/android" ]; then
-            ./gradlew :example:android:assembleRelease
-          else
-            ./gradlew :example:assembleRelease
-          fi
-
-      - name: APK Imzala (Kurulabilmesi Icin)
-        run: |
-          APK_PATH=$(find example -name "*release*.apk" | head -n 1)
-          keytool -genkey -v -keystore test.keystore -alias test -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Test"
-          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | tail -n 1)
-          $BUILD_TOOLS/zipalign -v -p 4 "$APK_PATH" aligned.apk
-          $BUILD_TOOLS/apksigner sign --ks test.keystore --ks-pass pass:123456 --key-pass pass:123456 --out miuix-release-signed.apk aligned.apk
+          ./gradlew :example:android:assembleRelease \
+            -Pandroid.injected.signing.store.file="$GITHUB_WORKSPACE/test.keystore" \
+            -Pandroid.injected.signing.store.password=123456 \
+            -Pandroid.injected.signing.key.alias=test \
+            -Pandroid.injected.signing.key.password=123456
 
       - name: Imzali Release APK Yukle
         uses: actions/upload-artifact@v4
         with:
           name: miuix-release-apk
-          path: "miuix-release-signed.apk"
+          path: "example/android/build/outputs/apk/release/*.apk"
