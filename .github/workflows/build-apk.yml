@@ -1,0 +1,28 @@
+name: Build Miuix APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu Cek
+        uses: actions/checkout@v4
+
+      - name: Java 17 Kur
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: APK Derle
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: APK Dosyasini Yukle
+        uses: actions/upload-artifact@v4
+        with:
+          name: miuix-demo-apk
+          path: "**/build/outputs/apk/debug/*.apk"
